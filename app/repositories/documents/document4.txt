@@ -1,0 +1,2 @@
+Title: Deep Learning
+Deep Learning is a subset of ML that uses neural networks with many layers (hence the term "deep"). These networks are capable of learning from large amounts of data and are used in applications such as image and speech recognition.
