@@ -3,13 +3,13 @@ from app.repositories.knowledge import KnowledgeBase
 
 def main():
     # Initialize the knowledge base
-    kb = KnowledgeBase(directory='app/repositories/documents')
+    kb = KnowledgeBase(documents_dir='app/repositories/documents/database1', saved_embeddings_dir='app/repositories/saved_embeddings')
 
     # Generate embeddings for the documents
     kb.generate_embeddings()
 
     # Perform a search
-    query = "What is deep learning?"
+    query = "Keresés megoldások"
     results = kb.search(query=query, top_k=3)
 
     # Print the search results

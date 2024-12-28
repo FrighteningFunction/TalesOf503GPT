@@ -1,2 +1,0 @@
-Title: Natural Language Processing
-Natural Language Processing (NLP) is a field of AI that gives machines the ability to read, understand, and derive meaning from human languages. It is used in applications such as language translation, sentiment analysis, and speech recognition.
