@@ -1,13 +1,13 @@
 import os
-import openai
+from openai import OpenAI
 import logging
 from typing import List, Tuple
-from ..logging.logging_config import setup_logging
+from app.app_logging.logging_config import setup_logging
 
 setup_logging()
 
 class KnowledgeBase:
-    def __init__(self, directory: str, embedding_model: str = "text-embedding-ada-002", chunk_size: int = 500):
+    def __init__(self, directory: str, embedding_model: str = "text-embedding-3-small", chunk_size: int = 500):
         """
         Initialize the knowledge base.
         :param directory: Path to the directory containing .txt files.
@@ -19,6 +19,10 @@ class KnowledgeBase:
         self.chunk_size = chunk_size
         self.chunks = []  # List to store (chunk_id, filename, text)
         self.embeddings = {}  # Dictionary to store chunk embeddings
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("KnowledgeBase initialized")
+
+        self.client = OpenAI()
 
         self._load_and_chunk_documents()
 
@@ -38,20 +42,20 @@ class KnowledgeBase:
                     chunk_id = f"{filename}_chunk_{i // self.chunk_size}"
                     self.chunks.append((chunk_id, filename, chunk_text))
 
-        logging.info(f"Loaded and chunked {len(self.chunks)} sections from files.")
+        self.logger.info(f"Loaded and chunked {len(self.chunks)} sections from files.")
 
     def generate_embeddings(self):
         """
         Generate and store embeddings for all chunks in the knowledge base.
         """
         for chunk_id, _, chunk_text in self.chunks:
-            response = openai.Embedding.create(
+            response = self.client.embeddings.create(
                 input=chunk_text,
                 model=self.embedding_model
             )
-            self.embeddings[chunk_id] = response['data'][0]['embedding']
+            self.embeddings[chunk_id] = response.data[0].embedding
 
-        logging.info(f"Embeddings generated for {len(self.embeddings)} chunks.")
+        self.logger.info(f"Embeddings generated for {len(self.embeddings)} chunks.")
 
     def search(self, query: str, top_k: int = 3) -> List[Tuple[str, str, str, float]]:
         """
@@ -61,10 +65,10 @@ class KnowledgeBase:
         :return: List of tuples (chunk_id, filename, text, similarity_score).
         """
         # Generate query embedding
-        query_embedding = openai.Embedding.create(
+        query_embedding = self.client.embeddings.create(
             input=query,
             model=self.embedding_model
-        )['data'][0]['embedding']
+        ).data[0].embedding
 
         # Compute cosine similarity with all chunk embeddings
         results = []
@@ -72,9 +76,10 @@ class KnowledgeBase:
             similarity = self._cosine_similarity(query_embedding, self.embeddings[chunk_id])
             results.append((chunk_id, filename, text, similarity))
 
-        # Sort by similarity and return top_k results
+        # Sort by similarity and return top_k results, but filtered
         results = sorted(results, key=lambda x: x[3], reverse=True)
-        return results[:top_k]
+        filtered_results = [result for result in results if result[3] >= 0.5]
+        return filtered_results[:top_k]
 
     @staticmethod
     def _cosine_similarity(vec1, vec2):
